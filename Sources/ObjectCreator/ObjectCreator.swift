@@ -2,13 +2,11 @@ import Foundation
 
 public struct ObjectCreator {
     
-    public var json: JSON
-    public var topLevelObjectName: String
+    private var objects: [Object]
     
     public init(json: JSON, topLevelObjectName: String) {
         
-        self.json = json
-        self.topLevelObjectName = topLevelObjectName
+        objects = Object.createObjects(using: json, topLevelObjectName: topLevelObjectName)
     }
     
     public init(jsonString: String, topLevelObjectName: String) throws {
@@ -17,13 +15,15 @@ public struct ObjectCreator {
             throw CustomError(description: "Could not create data from provided string.")
         }
         
-        json = try ObjectCreator.parse(data: data)
-        self.topLevelObjectName = topLevelObjectName
+        let json = try ObjectCreator.parse(data: data)
+        self.init(json: json, topLevelObjectName: topLevelObjectName)
     }
     
     public func export() -> String {
         
-        return createJSONObjects(for: json, named: topLevelObjectName)
+        return objects
+            .map { $0.formatted }
+            .joined(separator: "\n\n")
     }
 }
 
@@ -38,76 +38,5 @@ private extension ObjectCreator {
         }
         
         return typedJson
-    }
-    
-    func createJSONObjects(for json: JSON, named className: String) -> String {
-        
-        var needsCodingKeys = false
-        
-        var formattedObject = "struct \(className): Codable {\n\n"
-        var futureObjects = [Object]()
-        
-        for (key, value) in json {
-            
-            let camelCasedKey = key.camelCased(capitalized: false)
-            if key != camelCasedKey { needsCodingKeys = true }
-            
-            var type = swiftType(of: value)
-            
-            if let value = value as? [JSON] {
-                let className = typeName(from: key)
-                let pair = Object(className: className, contents: value.first!)
-                futureObjects.append(pair)
-                type = .custom(className, isArray: true)
-            }
-            
-            if let value = value as? JSON {
-                let className = typeName(from: key)
-                let pair = Object(className: className, contents: value)
-                futureObjects.append(pair)
-                type = .custom(className, isArray: false)
-            }
-            
-            formattedObject += "\(indention(level: 1))var \(camelCasedKey): \(type.name)\n"
-        }
-        
-        if needsCodingKeys {
-            let keys = Array(json.keys)
-            formattedObject += "\n\(createCodingKeys(for: keys))\n"
-        }
-        
-        formattedObject += "}"
-        
-        for object in futureObjects {
-            
-            formattedObject += "\n\n\(createJSONObjects(for: object.contents, named: object.className))"
-        }
-        
-        return formattedObject
-    }
-    
-    func createCodingKeys(for variableNames: [String]) -> String {
-        
-        var codingKeysString = "\(indention(level: 1))enum CodingKeys: String, CodingKey {\n\n"
-        
-        for variableName in variableNames {
-            let enumCase = variableName.camelCased()
-            let value = variableName
-            
-            codingKeysString += "\(indention(level: 2))case \(enumCase) = \"\(value)\"\n"
-        }
-        
-        codingKeysString += "\(indention(level: 1))}"
-        
-        return codingKeysString
-    }
-}
-
-extension ObjectCreator {
-    
-    struct Object {
-        
-        var className: String
-        var contents: JSON
     }
 }
