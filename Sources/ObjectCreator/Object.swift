@@ -13,7 +13,7 @@ struct Object {
     
     var className: String
     var shouldExportCodingKeys = false
-    let viabilityScore: Double
+    private let viabilityScore: Double
     
     // MARK: - Private Properties
     
@@ -33,7 +33,7 @@ struct Object {
     public static func createObjects(using json: JSON, topLevelObjectName name: String) -> [Object] {
         
         var needsCodingKeys = false
-        var objects = [Object]()
+        var objects = ObjectCollection()
         var fields = Set<Field>()
         
         for (key, value) in json {
@@ -46,14 +46,14 @@ struct Object {
             if let value = value as? [JSON] {
                 let className = typeName(from: key)
                 let childObjects = Object.createObjects(using: value.first!, topLevelObjectName: className)
-                objects += childObjects
+                objects.add(objects: childObjects)
                 type = .custom(className, isArray: true)
             }
             
             if let value = value as? JSON {
                 let className = typeName(from: key)
                 let childObjects = Object.createObjects(using: value, topLevelObjectName: className)
-                objects += childObjects
+                objects.add(objects: childObjects)
                 type = .custom(className, isArray: false)
             }
             
@@ -64,7 +64,8 @@ struct Object {
         var object = Object(className: name, fields: fields)
         object.shouldExportCodingKeys = needsCodingKeys
         
-        return [object] + objects
+        objects.add(object: object)
+        return objects.contents
     }
     
     // MARK: - Computed Properties
@@ -87,6 +88,11 @@ struct Object {
         formattedObject += "}"
         
         return formattedObject
+    }
+    
+    func isMoreViable(than otherObject: Object) -> Bool {
+        
+        return viabilityScore > otherObject.viabilityScore
     }
 }
 
@@ -111,5 +117,18 @@ private extension Object {
         codingKeysString += "\(indention(level: 1))}"
         
         return codingKeysString
+    }
+}
+
+extension Object: Hashable {
+    
+    var hashValue: Int {
+        
+        return className.hashValue ^ fields.hashValue
+    }
+    
+    static func == (lhs: Object, rhs: Object) -> Bool {
+        
+        return lhs.hashValue == rhs.hashValue
     }
 }
