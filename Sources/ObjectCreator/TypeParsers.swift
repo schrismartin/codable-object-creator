@@ -56,3 +56,16 @@ public enum ObjectType {
         }
     }
 }
+
+extension ObjectType: Hashable {
+    
+    public static func == (lhs: ObjectType, rhs: ObjectType) -> Bool {
+        
+        return lhs.name == rhs.name
+    }
+    
+    public var hashValue: Int {
+        
+        return name.hashValue
+    }
+}

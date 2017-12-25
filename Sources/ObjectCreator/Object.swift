@@ -13,24 +13,28 @@ struct Object {
     
     var className: String
     var shouldExportCodingKeys = false
+    let viabilityScore: Double
     
     // MARK: - Private Properties
     
-    private var fields = [Field]()
+    private var fields = Set<Field>()
     
     // MARK: - Initializers
     
-    private init(className: String, fields: [Field]) {
+    private init(className: String, fields: Set<Field>) {
         
         self.className = className
         self.fields = fields
+        
+        let viableFields = fields.filter { $0.isViable }.count
+        viabilityScore = Double(viableFields) / Double(fields.count)
     }
     
     public static func createObjects(using json: JSON, topLevelObjectName name: String) -> [Object] {
         
         var needsCodingKeys = false
         var objects = [Object]()
-        var fields = [Field]()
+        var fields = Set<Field>()
         
         for (key, value) in json {
             
@@ -41,20 +45,20 @@ struct Object {
             
             if let value = value as? [JSON] {
                 let className = typeName(from: key)
-                let subObjects = Object.createObjects(using: value.first!, topLevelObjectName: className)
-                objects += subObjects
+                let childObjects = Object.createObjects(using: value.first!, topLevelObjectName: className)
+                objects += childObjects
                 type = .custom(className, isArray: true)
             }
             
             if let value = value as? JSON {
                 let className = typeName(from: key)
-                let subObjects = Object.createObjects(using: value, topLevelObjectName: className)
-                objects += subObjects
+                let childObjects = Object.createObjects(using: value, topLevelObjectName: className)
+                objects += childObjects
                 type = .custom(className, isArray: false)
             }
             
             let field = Field(value: key, type: type)
-            fields.append(field)
+            fields.insert(field)
         }
         
         var object = Object(className: name, fields: fields)
@@ -97,21 +101,15 @@ private extension Object {
             let enumCase = variableName.camelCased()
             let value = variableName
             
-            codingKeysString += "\(indention(level: 2))case \(enumCase) = \"\(value)\"\n"
+            if variableName == variableName.camelCased() {
+                codingKeysString += "\(indention(level: 2))case \(enumCase)\n"
+            } else {
+                codingKeysString += "\(indention(level: 2))case \(enumCase) = \"\(value)\"\n"
+            }
         }
         
         codingKeysString += "\(indention(level: 1))}"
         
         return codingKeysString
-    }
-}
-
-// MARK: - Assistant Objects
-private extension Object {
-    
-    struct Field {
-        
-        var value: String
-        var type: ObjectType
     }
 }
