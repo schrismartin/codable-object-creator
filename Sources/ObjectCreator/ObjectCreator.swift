@@ -2,7 +2,7 @@ import Foundation
 
 public struct ObjectCreator {
     
-    private var objects: [Object]
+    var objects: [Object]
     
     public init(json: JSON, topLevelObjectName: String) {
         
