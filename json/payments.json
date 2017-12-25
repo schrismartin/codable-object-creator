@@ -1,0 +1,30 @@
+{
+  "payment": {
+    "customer_number": "2729001274",
+    "payment_method": {
+      "ach_routing_number": "",
+      "billing_address_id": "3",
+      "credit_card_token": "T4584921532601111",
+      "expiration_date": "2018-07-31T00:00:00",
+      "payment_sub_type": "MCD",
+      "payment_type": "CCD"
+    },
+    "payment_option": "EasyPay",
+    "purchase_objects": [
+      {
+        "agreement_number": "67058",
+        "created_by_branch": "5454",
+        "invoice_number": "",
+        "payment_amount": "",
+        "product_description": "Customized Lawn Plan"
+      },
+      {
+        "agreement_number": "67058",
+        "created_by_branch": "5454",
+        "invoice_number": "",
+        "payment_amount": "",
+        "product_description": "Customized Lawn Plan"
+      }
+    ]
+  }
+}

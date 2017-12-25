@@ -7,30 +7,34 @@
 
 import Foundation
 
-struct Object {
+struct Object: PreferenceQuantifiable {
     
     // MARK: - Properties
     
     var className: String
     var shouldExportCodingKeys = false
+    let preference: Double
     
     // MARK: - Private Properties
     
-    private var fields = [Field]()
+    private var fields = Set<Field>()
     
     // MARK: - Initializers
     
-    private init(className: String, fields: [Field]) {
+    private init(className: String, fields: Set<Field>) {
         
         self.className = className
         self.fields = fields
+        
+        let fieldViabilityScore = fields.reduce(0) { $0 + $1.preference }
+        preference = fieldViabilityScore / Double(fields.count)
     }
     
     public static func createObjects(using json: JSON, topLevelObjectName name: String) -> [Object] {
         
         var needsCodingKeys = false
-        var objects = [Object]()
-        var fields = [Field]()
+        var objects = PreferentialSet<Object>()
+        var fields = PreferentialSet<Field>()
         
         for (key, value) in json {
             
@@ -39,28 +43,35 @@ struct Object {
             
             var type = swiftType(of: value)
             
-            if let value = value as? [JSON] {
+            if let values = value as? [JSON] {
+                
                 let className = typeName(from: key)
-                let subObjects = Object.createObjects(using: value.first!, topLevelObjectName: className)
-                objects += subObjects
+                for value in values {
+                    
+                    let childObjects = Object.createObjects(using: value, topLevelObjectName: className)
+                    objects.add(objects: childObjects)
+                }
+                
                 type = .custom(className, isArray: true)
             }
             
             if let value = value as? JSON {
+                
                 let className = typeName(from: key)
-                let subObjects = Object.createObjects(using: value, topLevelObjectName: className)
-                objects += subObjects
+                let childObjects = Object.createObjects(using: value, topLevelObjectName: className)
+                objects.add(objects: childObjects)
                 type = .custom(className, isArray: false)
             }
             
             let field = Field(value: key, type: type)
-            fields.append(field)
+            fields.add(object: field)
         }
         
-        var object = Object(className: name, fields: fields)
+        var object = Object(className: name, fields: fields.set)
         object.shouldExportCodingKeys = needsCodingKeys
         
-        return [object] + objects
+        objects.add(object: object)
+        return objects.array
     }
     
     // MARK: - Computed Properties
@@ -97,7 +108,11 @@ private extension Object {
             let enumCase = variableName.camelCased()
             let value = variableName
             
-            codingKeysString += "\(indention(level: 2))case \(enumCase) = \"\(value)\"\n"
+            if variableName == variableName.camelCased() {
+                codingKeysString += "\(indention(level: 2))case \(enumCase)\n"
+            } else {
+                codingKeysString += "\(indention(level: 2))case \(enumCase) = \"\(value)\"\n"
+            }
         }
         
         codingKeysString += "\(indention(level: 1))}"
@@ -106,12 +121,15 @@ private extension Object {
     }
 }
 
-// MARK: - Assistant Objects
-private extension Object {
+extension Object: Hashable {
     
-    struct Field {
+    var hashValue: Int {
         
-        var value: String
-        var type: ObjectType
+        return className.hashValue ^ fields.hashValue
+    }
+    
+    static func == (lhs: Object, rhs: Object) -> Bool {
+        
+        return lhs.hashValue == rhs.hashValue
     }
 }
