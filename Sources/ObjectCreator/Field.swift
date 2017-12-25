@@ -13,12 +13,13 @@ struct Field {
     
     var value: String
     var type: ObjectType
+}
+
+extension Field: PreferenceQuantifiable {
     
-    // MARK: - Computed Properties
-    
-    var isViable: Bool {
+    var preference: Double {
         
-        return type != .unknown
+        return type != .unknown ? 1 : 0
     }
 }
 

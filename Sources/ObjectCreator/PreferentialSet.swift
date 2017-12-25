@@ -7,20 +7,25 @@
 
 import Foundation
 
-struct ObjectCollection {
+struct PreferentialSet<ItemType: PreferenceQuantifiable & Hashable> {
     
-    var collection = [Int: Object]()
+    var collection = [Int: ItemType]()
     
-    var contents: [Object] {
+    var array: [ItemType] {
         
         return collection.map { $0.value }
     }
     
-    mutating func add(object: Object) {
+    var set: Set<ItemType> {
+        
+        return Set(array)
+    }
+    
+    mutating func add(object: ItemType) {
         
         let key = object.hashValue
         
-        if let currentObject = collection[key], currentObject.isMoreViable(than: object) {
+        if let currentObject = collection[key], currentObject.isPrefered(over: object) {
             return
         }
         else {
@@ -28,14 +33,14 @@ struct ObjectCollection {
         }
     }
     
-    mutating func add(objects: [Object]) {
+    mutating func add(objects: [ItemType]) {
         
         for object in objects {
             add(object: object)
         }
     }
     
-    mutating func remove(object: Object) {
+    mutating func remove(object: ItemType) {
         
         let key = object.hashValue
         collection[key] = nil

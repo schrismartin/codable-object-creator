@@ -7,13 +7,13 @@
 
 import Foundation
 
-struct Object {
+struct Object: PreferenceQuantifiable {
     
     // MARK: - Properties
     
     var className: String
     var shouldExportCodingKeys = false
-    private let viabilityScore: Double
+    let preference: Double
     
     // MARK: - Private Properties
     
@@ -26,15 +26,15 @@ struct Object {
         self.className = className
         self.fields = fields
         
-        let viableFields = fields.filter { $0.isViable }.count
-        viabilityScore = Double(viableFields) / Double(fields.count)
+        let fieldViabilityScore = fields.reduce(0) { $0 + $1.preference }
+        preference = fieldViabilityScore / Double(fields.count)
     }
     
     public static func createObjects(using json: JSON, topLevelObjectName name: String) -> [Object] {
         
         var needsCodingKeys = false
-        var objects = ObjectCollection()
-        var fields = Set<Field>()
+        var objects = PreferentialSet<Object>()
+        var fields = PreferentialSet<Field>()
         
         for (key, value) in json {
             
@@ -43,14 +43,20 @@ struct Object {
             
             var type = swiftType(of: value)
             
-            if let value = value as? [JSON] {
+            if let values = value as? [JSON] {
+                
                 let className = typeName(from: key)
-                let childObjects = Object.createObjects(using: value.first!, topLevelObjectName: className)
-                objects.add(objects: childObjects)
+                for value in values {
+                    
+                    let childObjects = Object.createObjects(using: value, topLevelObjectName: className)
+                    objects.add(objects: childObjects)
+                }
+                
                 type = .custom(className, isArray: true)
             }
             
             if let value = value as? JSON {
+                
                 let className = typeName(from: key)
                 let childObjects = Object.createObjects(using: value, topLevelObjectName: className)
                 objects.add(objects: childObjects)
@@ -58,14 +64,14 @@ struct Object {
             }
             
             let field = Field(value: key, type: type)
-            fields.insert(field)
+            fields.add(object: field)
         }
         
-        var object = Object(className: name, fields: fields)
+        var object = Object(className: name, fields: fields.set)
         object.shouldExportCodingKeys = needsCodingKeys
         
         objects.add(object: object)
-        return objects.contents
+        return objects.array
     }
     
     // MARK: - Computed Properties
@@ -88,11 +94,6 @@ struct Object {
         formattedObject += "}"
         
         return formattedObject
-    }
-    
-    func isMoreViable(than otherObject: Object) -> Bool {
-        
-        return viabilityScore > otherObject.viabilityScore
     }
 }
 
