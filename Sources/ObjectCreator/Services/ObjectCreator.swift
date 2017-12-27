@@ -4,7 +4,7 @@ public struct ObjectCreator {
     
     var objects: [Object]
     
-    public init(json: JSON, topLevelObjectName: String) {
+    public init(json: JSON, topLevelObjectName: String) throws {
         
         objects = Object.createObjects(using: json, topLevelObjectName: topLevelObjectName)
     }
@@ -16,7 +16,7 @@ public struct ObjectCreator {
         }
         
         let json = try ObjectCreator.parse(data: data)
-        self.init(json: json, topLevelObjectName: topLevelObjectName)
+        try self.init(json: json, topLevelObjectName: topLevelObjectName)
     }
     
     public func export() -> String {

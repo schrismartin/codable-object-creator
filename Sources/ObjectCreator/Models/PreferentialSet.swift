@@ -24,7 +24,6 @@ struct PreferentialSet<ItemType: PreferenceQuantifiable & Hashable> {
     mutating func add(object: ItemType) {
         
         let key = object.hashValue
-        
         if let currentObject = collection[key], currentObject.isPrefered(over: object) {
             return
         }

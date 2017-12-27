@@ -57,7 +57,10 @@ private extension App {
             
             let filename = "\(object.className).swift"
             let file = try folder.createFileIfNeeded(withName: filename)
-            try file.write(string: object.formatted)
+            
+            let header = Constants.File.fileComment(filename: filename)
+            let fileContents = "\(header)\n\n\(object.formatted)"
+            try file.write(string: fileContents)
         }
     }
     

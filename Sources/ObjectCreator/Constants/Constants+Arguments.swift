@@ -14,7 +14,7 @@ extension Constants {
         
         static let source = Argument<String>(
             "source",
-            description: "file containing json payload"
+            description: "file path of json file, relative to the current directory"
         )
         
         static let objectName = Argument<String>(
